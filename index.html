@@ -1,0 +1,249 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Арбузные Кейсы 🍉</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#10180f;color:white;font-family:Arial,sans-serif}
+header{padding:18px;text-align:center;background:#1e351c;border-bottom:2px solid #4caf50}
+h1{margin:0;color:#8cff78;font-size:25px}
+.balance{font-size:21px;margin-top:12px;color:#ffe66d;font-weight:bold}
+main{padding:16px;max-width:520px;margin:auto;padding-bottom:90px}
+.page{display:none}.page.active{display:block}
+.card{background:#1d2a1d;border:1px solid #3c5b38;border-radius:18px;padding:16px;margin:12px 0}
+button{border:0;border-radius:12px;padding:12px;background:#52c957;color:#10210e;font-weight:bold;font-size:15px;cursor:pointer}
+button:disabled{opacity:.4}
+.wide{width:100%;margin-top:10px}
+.watermelon{display:block;font-size:125px;margin:12px auto;cursor:pointer;user-select:none;text-align:center;filter:drop-shadow(0 5px 15px #0008);transition:transform .1s}
+.watermelon:active{transform:scale(.88) rotate(-5deg)}
+.center{text-align:center}
+.muted{color:#b9c9b5;font-size:13px}
+.tabs{position:fixed;bottom:0;left:0;right:0;display:flex;justify-content:space-around;background:#192719;border-top:1px solid #42633d;padding:8px 2px calc(8px + env(safe-area-inset-bottom));z-index:5}
+.tabs button{background:transparent;color:white;padding:8px 5px;font-size:12px}
+.tabs button.selected{background:#31552e;color:#a6ff91}
+.item{display:flex;align-items:center;gap:12px;margin:10px 0;padding:10px;background:#273727;border-radius:12px}
+.item .emoji{font-size:35px}
+.item .details{flex:1}
+input{width:100%;padding:12px;border-radius:10px;border:1px solid #597452;background:#101a10;color:white;margin:6px 0;font-size:16px}
+.coin{position:fixed;pointer-events:none;font-size:25px;z-index:10;animation:fly .8s ease-in forwards}
+@keyframes fly{0%{opacity:1;transform:translate(0,0) scale(.7)}50%{opacity:1;transform:translate(20px,-90px) scale(1.3)}100%{opacity:0;transform:translate(0,-180px) scale(.4)}}
+.pop{animation:pop .2s}@keyframes pop{50%{transform:scale(1.12) rotate(5deg)}}
+.toast{position:fixed;top:12px;left:10%;width:80%;padding:12px;background:#345d2e;border-radius:12px;text-align:center;z-index:20;display:none}
+</style>
+</head>
+<body>
+<header>
+<h1>🍉 АРБУЗНЫЕ КЕЙСЫ</h1>
+<div class="balance">🪙 <span id="coins">0</span> монет</div>
+</header>
+<div id="toast" class="toast"></div>
+<main>
+<section id="clicker" class="page active">
+<div class="card center">
+<h2>Арбузный кликер</h2>
+<div class="muted">Тапай арбуз — зарабатывай монеты!</div>
+<div id="melon" class="watermelon">🍉</div>
+<div>За тап: <b id="perTap">1</b> 🪙</div>
+<div class="muted">Автодоход: <span id="autoInfo">0</span> монет/сек</div>
+<button class="wide" onclick="tapMelon()">🍉 ТАПНУТЬ ПО АРБУЗУ</button>
+</div>
+<div class="card">
+<h3>⚡ Улучшения</h3>
+<div id="upgrades"></div>
+</div>
+<div class="card">
+<h3>🎁 Бесплатные награды</h3>
+<p>Ежедневный подарок: 100 монет</p>
+<button class="wide" onclick="daily()">Забрать награду</button>
+<div class="muted">Награда доступна раз в сутки на этом устройстве.</div>
+</div>
+</section>
+
+<section id="cases" class="page">
+<h2>🎁 Магазин кейсов</h2>
+<div id="caseList"></div>
+</section>
+
+<section id="inventory" class="page">
+<h2>🎒 Мой инвентарь</h2>
+<div id="inventoryList"></div>
+<button class="wide" onclick="sellDuplicates()">💰 Продать дубликаты</button>
+</section>
+
+<section id="admin" class="page">
+<h2>👑 Админ-панель</h2>
+<div class="card">
+<p class="muted">Введи свой код администратора.</p>
+<input id="adminCode" type="password" placeholder="Код доступа">
+<button class="wide" onclick="loginAdmin()">Войти</button>
+</div>
+<div id="adminControls" style="display:none">
+<div class="card">
+<h3>⚙️ Автокликер</h3>
+<label>Нажатий в секунду (1–1 000 000 000)</label>
+<input id="cpsInput" type="number" min="1" max="1000000000" value="1">
+<button class="wide" onclick="setCps()">Сохранить скорость</button>
+<button class="wide" onclick="toggleAuto()" id="autoButton">Включить автокликер</button>
+<p>Статус: <b id="autoStatus">Выключен</b></p>
+<p class="muted">При 1 CPS есть звук и анимация. При скорости выше 1 эффекты отключаются.</p>
+</div>
+<div class="card">
+<h3>💰 Выдать монеты</h3>
+<input id="giveCoins" type="number" min="0" placeholder="Количество монет">
+<button class="wide" onclick="grantCoins()">Выдать монеты</button>
+</div>
+</div>
+</section>
+</main>
+
+<nav class="tabs">
+<button class="selected" onclick="showPage('clicker',this)">🍉 Кликер</button>
+<button onclick="showPage('cases',this)">🎁 Кейсы</button>
+<button onclick="showPage('inventory',this)">🎒 Инвентарь</button>
+<button onclick="showPage('admin',this)">👑 Админ</button>
+</nav>
+
+<script>
+const ADMIN_CODE = "DenisArbyz345678920142000";
+const defaults = {
+coins:0, power:1, powerLevel:0, autoLevel:0, bonusLevel:0,
+cps:1, autoOn:false, inventory:[], lastDaily:"", sound:true
+};
+let data;
+try {
+ data={...defaults,...JSON.parse(localStorage.getItem("arbuzCaseSave")||"{}")};
+} catch(e) { data={...defaults}; }
+
+const items=[
+["Чайник-топ","☕","Обычный",55],
+["Голубь-пацан","🐦","Обычный",35],
+["Огурец-сила","🥒","Необычный",20],
+["Арбузный кот","🐱","Редкий",12],
+["Арбузная акула","🦈","Редкий",10],
+["Арбузный снайпер","🔫","Эпический",5],
+["Арбузный ангел","😇","Эпический",3],
+["Золотой голубь","🕊️","Легендарный",1],
+["Арбузный король","👑","Легендарный",1],
+["МЕГА-АРБУЗ","🍉","Мифический",0.5]
+];
+const cases=[
+{name:"Зелёный кейс",price:100,desc:"Для начинающих"},
+{name:"Золотой кейс",price:500,desc:"Больше редких мемов"},
+{name:"Божественный кейс",price:2000,desc:"Шанс на мифический предмет"}
+];
+function save(){localStorage.setItem("arbuzCaseSave",JSON.stringify(data));render();}
+function fmt(n){return Math.floor(n).toLocaleString("ru-RU");}
+function toast(t){let el=document.getElementById("toast");el.textContent=t;el.style.display="block";setTimeout(()=>el.style.display="none",1800);}
+function render(){
+ document.getElementById("coins").textContent=fmt(data.coins);
+ document.getElementById("perTap").textContent=fmt(data.power);
+ document.getElementById("autoInfo").textContent=fmt(data.autoOn?data.cps*data.power:0);
+ document.getElementById("autoStatus").textContent=data.autoOn?"Включён":"Выключен";
+ document.getElementById("autoButton").textContent=data.autoOn?"Выключить автокликер":"Включить автокликер";
+ document.getElementById("upgrades").innerHTML=[
+ {name:"Сильный палец",desc:"Больше монет за тап",price:50*Math.pow(2,data.powerLevel),buy:()=>upgrade("power")},
+ {name:"Автокликер",desc:"+1 нажатие в секунду",price:250*Math.pow(2,data.autoLevel),buy:()=>upgrade("auto")},
+ {name:"Золотой арбуз",desc:"Увеличивает доход за тап",price:500*Math.pow(2,data.bonusLevel),buy:()=>upgrade("bonus")}
+ ].map((u)=>`<div class="item"><div class="emoji">⚡</div><div class="details"><b>${u.name}</b><div class="muted">${u.desc}</div><div>Цена: ${fmt(u.price)} 🪙</div></div><button onclick="${u.name==='Сильный палец'?'upgrade(\\'power\\')':u.name==='Автокликер'?'upgrade(\\'auto\\')':'upgrade(\\'bonus\\')'}">Купить</button></div>`).join("");
+ document.getElementById("caseList").innerHTML=cases.map((c,i)=>`<div class="card"><h3>${["🟩","🟨","🌌"][i]} ${c.name}</h3><p>${c.desc}</p><p>Цена: <b>${fmt(c.price)} 🪙</b></p><button class="wide" onclick="openCase(${i})">Открыть кейс</button></div>`).join("");
+ document.getElementById("inventoryList").innerHTML=data.inventory.length?data.inventory.map((x,i)=>`<div class="item"><div class="emoji">${x.emoji}</div><div class="details"><b>${x.name}</b><div class="muted">${x.rarity}</div></div></div>`).join(""):"<div class='card center'>Пока пусто. Открой первый кейс! 🍉</div>";
+}
+function soundCoin(){
+ if(!data.sound)return;
+ try{
+  const C=window.AudioContext||window.webkitAudioContext;
+  const ctx=new C(),o=ctx.createOscillator(),g=ctx.createGain();
+  o.connect(g);g.connect(ctx.destination);o.frequency.value=1050;
+  o.type="sine";g.gain.setValueAtTime(.07,ctx.currentTime);
+  g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.12);
+  o.start();o.stop(ctx.currentTime+.12);o.onended=()=>ctx.close();
+ }catch(e){}
+}
+function flyCoin(){
+ const melon=document.getElementById("melon"),r=melon.getBoundingClientRect();
+ const el=document.createElement("span");el.className="coin";el.textContent="🪙";
+ el.style.left=(r.left+r.width/2)+"px";el.style.top=(r.top+20)+"px";
+ document.body.appendChild(el);setTimeout(()=>el.remove(),850);
+}
+function tapMelon(){
+ data.coins+=data.power;
+ const m=document.getElementById("melon");m.classList.remove("pop");void m.offsetWidth;m.classList.add("pop");
+ flyCoin();soundCoin();save();
+}
+function upgrade(type){
+ let price,level;
+ if(type==="power"){level="powerLevel";price=50*Math.pow(2,data.powerLevel);}
+ if(type==="auto"){level="autoLevel";price=250*Math.pow(2,data.autoLevel);}
+ if(type==="bonus"){level="bonusLevel";price=500*Math.pow(2,data.bonusLevel);}
+ if(data.coins<price){toast("Не хватает монет! 🍉");return;}
+ data.coins-=price;data[level]++;
+ if(type==="power")data.power+=1;
+ if(type==="auto"){data.cps+=1;data.autoOn=true;}
+ if(type==="bonus")data.power+=2;
+ toast("Улучшение куплено! ⚡");save();
+}
+function openCase(i){
+ const c=cases[i];if(data.coins<c.price){toast("Не хватает монет! 💰");return;}
+ data.coins-=c.price;
+ let pool=items.map(x=>({item:x,weight:x[3]}));
+ if(i===1)pool=pool.filter(x=>!["Обычный"].includes(x.item[2]));
+ if(i===2)pool=pool.filter(x=>["Эпический","Легендарный","Мифический"].includes(x.item[2]));
+ let total=pool.reduce((s,x)=>s+x.weight,0),roll=Math.random()*total,chosen=pool[0].item;
+ for(const p of pool){roll-=p.weight;if(roll<=0){chosen=p.item;break;}}
+ data.inventory.push({name:chosen[0],emoji:chosen[1],rarity:chosen[2]});
+ save();toast("Выпало: "+chosen[1]+" "+chosen[0]+"!");
+}
+function sellDuplicates(){
+ let seen={},dups=[];
+ data.inventory=data.inventory.filter(x=>{
+  if(seen[x.name]){dups.push(x);return false;}seen[x.name]=true;return true;
+ });
+ if(!dups.length){toast("Дубликатов нет!");return;}
+ data.coins+=dups.reduce((s,x)=>s+({Обычный:10,Необычный:20,Редкий:50,Эпический:100,Легендарный:300,Мифический:500}[x.rarity]||10),0);
+ toast("Дубликаты проданы! 💰");save();
+}
+function daily(){
+ const today=new Date().toLocaleDateString("en-CA");
+ if(data.lastDaily===today){toast("Подарок уже забран! Возвращайся завтра.");return;}
+ data.lastDaily=today;data.coins+=100;save();toast("+100 монет! 🎁");
+}
+function loginAdmin(){
+ if(document.getElementById("adminCode").value!==ADMIN_CODE){toast("Неверный код!");return;}
+ document.getElementById("adminControls").style.display="block";
+ toast("Добро пожаловать, админ! 👑");
+}
+function setCps(){
+ let n=Math.floor(Number(document.getElementById("cpsInput").value));
+ if(!Number.isFinite(n)||n<1)n=1;
+ data.cps=Math.min(1000000000,n);
+ document.getElementById("cpsInput").value=data.cps;
+ save();toast("Скорость сохранена!");
+}
+function toggleAuto(){data.autoOn=!data.autoOn;save();}
+function grantCoins(){
+ let n=Math.floor(Number(document.getElementById("giveCoins").value));
+ if(!Number.isFinite(n)||n<0){toast("Введи корректное число");return;}
+ data.coins+=n;save();toast("Монеты выданы!");
+}
+function showPage(id,btn){
+ document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+ document.getElementById(id).classList.add("active");
+ document.querySelectorAll(".tabs button").forEach(b=>b.classList.remove("selected"));
+ btn.classList.add("selected");render();
+}
+let last=Date.now();
+setInterval(()=>{
+ const now=Date.now(),elapsed=Math.min((now-last)/1000,5);last=now;
+ if(data.autoOn&&elapsed>0){
+  data.coins+=data.cps*data.power*elapsed;
+  if(data.cps===1){/* Эффекты не запускаются фоновым таймером каждую секунду. */}
+  save();
+ }
+},250);
+render();
+</script>
+</body>
+</html>
